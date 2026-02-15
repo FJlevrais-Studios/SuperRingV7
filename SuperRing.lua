@@ -287,6 +287,16 @@ Layout.Padding = UDim.new(0,5)
 
 local function applyTheme(name)
 	if rainbowConnection then rainbowConnection:Disconnect() end
+
+	-- Reset all GUI elements to fully visible first
+	for _, v in pairs(Main:GetChildren()) do
+		if v:IsA("Frame") or v:IsA("TextButton") or v:IsA("ScrollingFrame") then
+			v.BackgroundTransparency = 0
+		elseif v:IsA("TextLabel") then
+			v.TextTransparency = 0
+		end
+	end
+
 	if name == "Default" then
 		Stroke.Color = Color3.fromRGB(0,170,255)
 	elseif name == "Red" then
@@ -296,7 +306,15 @@ local function applyTheme(name)
 	elseif name == "Neon" then
 		Stroke.Color = Color3.fromRGB(0,255,150)
 	elseif name == "Transparent" then
-		Stroke.Color = Color3.fromRGB(0,0,0)
+		Stroke.Color = Color3.new(1,1,1)
+		-- Make all GUI elements fully transparent
+		for _, v in pairs(Main:GetChildren()) do
+			if v:IsA("Frame") or v:IsA("TextButton") or v:IsA("ScrollingFrame") then
+				v.BackgroundTransparency = 1
+			elseif v:IsA("TextLabel") then
+				v.TextTransparency = 0.7 -- slightly visible text
+			end
+		end
 	elseif name == "Rainbow" then
 		rainbowConnection = RunService.RenderStepped:Connect(function()
 			Stroke.Color = Color3.fromHSV((tick()%5)/5,1,1)
