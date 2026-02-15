@@ -2,8 +2,9 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-
 local LocalPlayer = Players.LocalPlayer
+
+if not LocalPlayer then error("LocalPlayer not found!") end
 
 --// SETTINGS
 local radius = 50
@@ -14,10 +15,11 @@ local parts = {}
 local rainbowConnection
 
 --// GUI SETUP
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SuperRingV8"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Parent = PlayerGui
 
 local Main = Instance.new("Frame")
 Main.Size = UDim2.new(0, 300, 0, 260)
@@ -25,6 +27,7 @@ Main.Position = UDim2.new(0.5, -150, 0.5, -130)
 Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
+
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0,15)
 
 local Stroke = Instance.new("UIStroke", Main)
@@ -45,34 +48,33 @@ Title.Parent = Main
 local dragging, dragInput, dragStart, startPos
 
 local function update(input)
-	local delta = input.Position - dragStart
-	Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    local delta = input.Position - dragStart
+    Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
 Title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = Main.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
 
 Title.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
 end)
 
 UIS.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
-	end
+    if input == dragInput and dragging then
+        update(input)
+    end
 end)
 
 -- MINIMIZE
@@ -103,39 +105,35 @@ local minimized = false
 local originalSize = Main.Size
 
 Minimize.MouseButton1Click:Connect(function()
-	minimized = not minimized
-	
-	if minimized then
-		Main:TweenSize(UDim2.new(0,300,0,45),"Out","Quad",0.25,true)
-		for _,v in pairs(Main:GetChildren()) do
-			if v ~= Title and v ~= Minimize and v ~= Close then
-				v.Visible = false
-			end
-		end
-		Minimize.Text = "+"
-	else
-		Main:TweenSize(originalSize,"Out","Quad",0.25,true)
-		for _,v in pairs(Main:GetChildren()) do
-			v.Visible = true
-		end
-		Minimize.Text = "-"
-	end
+    minimized = not minimized
+    if minimized then
+        Main:TweenSize(UDim2.new(0,300,0,45),"Out","Quad",0.25,true)
+        for _,v in pairs(Main:GetChildren()) do
+            if v ~= Title and v ~= Minimize and v ~= Close then
+                v.Visible = false
+            end
+        end
+        Minimize.Text = "+"
+    else
+        Main:TweenSize(originalSize,"Out","Quad",0.25,true)
+        for _,v in pairs(Main:GetChildren()) do
+            v.Visible = true
+        end
+        Minimize.Text = "-"
+    end
 end)
 
 Close.MouseButton1Click:Connect(function()
-	ringEnabled = false
-	
-	if rainbowConnection then
-		rainbowConnection:Disconnect()
-	end
-	
-	for _,part in ipairs(parts) do
-		if part and part.Parent then
-			part.Velocity = Vector3.zero
-		end
-	end
-	
-	ScreenGui:Destroy()
+    ringEnabled = false
+    if rainbowConnection then
+        rainbowConnection:Disconnect()
+    end
+    for _,part in ipairs(parts) do
+        if part and part.Parent then
+            part.Velocity = Vector3.new(0,0,0)
+        end
+    end
+    ScreenGui:Destroy()
 end)
 
 -- TOGGLE BUTTON
@@ -151,62 +149,62 @@ Toggle.Parent = Main
 Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0,10)
 
 Toggle.MouseButton1Click:Connect(function()
-	ringEnabled = not ringEnabled
-	Toggle.Text = ringEnabled and "Ring: ON" or "Ring: OFF"
-	Toggle.BackgroundColor3 = ringEnabled and Color3.fromRGB(50,200,50) or Color3.fromRGB(40,40,40)
+    ringEnabled = not ringEnabled
+    Toggle.Text = ringEnabled and "Ring: ON" or "Ring: OFF"
+    Toggle.BackgroundColor3 = ringEnabled and Color3.fromRGB(50,200,50) or Color3.fromRGB(40,40,40)
 end)
 
 -- VALUE FRAME CREATOR
 local function createValueFrame(text, default, min, max, step, yPos, callback)
-	local Frame = Instance.new("Frame")
-	Frame.Size = UDim2.new(1,-20,0,45)
-	Frame.Position = UDim2.new(0,10,0,yPos)
-	Frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
-	Frame.Parent = Main
-	Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,10)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1,-20,0,45)
+    Frame.Position = UDim2.new(0,10,0,yPos)
+    Frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Frame.Parent = Main
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,10)
 
-	local Minus = Instance.new("TextButton")
-	Minus.Size = UDim2.new(0,40,1,0)
-	Minus.Text = "-"
-	Minus.Font = Enum.Font.GothamBold
-	Minus.TextSize = 18
-	Minus.BackgroundTransparency = 1
-	Minus.TextColor3 = Color3.new(1,1,1)
-	Minus.Parent = Frame
+    local Minus = Instance.new("TextButton")
+    Minus.Size = UDim2.new(0,40,1,0)
+    Minus.Text = "-"
+    Minus.Font = Enum.Font.GothamBold
+    Minus.TextSize = 18
+    Minus.BackgroundTransparency = 1
+    Minus.TextColor3 = Color3.new(1,1,1)
+    Minus.Parent = Frame
 
-	local Plus = Minus:Clone()
-	Plus.Text = "+"
-	Plus.Position = UDim2.new(1,-40,0,0)
-	Plus.Parent = Frame
+    local Plus = Minus:Clone()
+    Plus.Text = "+"
+    Plus.Position = UDim2.new(1,-40,0,0)
+    Plus.Parent = Frame
 
-	local Label = Instance.new("TextLabel")
-	Label.Size = UDim2.new(1,-80,1,0)
-	Label.Position = UDim2.new(0,40,0,0)
-	Label.BackgroundTransparency = 1
-	Label.Font = Enum.Font.Gotham
-	Label.TextSize = 14
-	Label.TextColor3 = Color3.new(1,1,1)
-	Label.Parent = Frame
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1,-80,1,0)
+    Label.Position = UDim2.new(0,40,0,0)
+    Label.BackgroundTransparency = 1
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 14
+    Label.TextColor3 = Color3.new(1,1,1)
+    Label.Parent = Frame
 
-	local value = default
-	Label.Text = text .. ": " .. value
+    local value = default
+    Label.Text = text .. ": " .. value
 
-	local function updateValue()
-		Label.Text = text .. ": " .. value
-		callback(value)
-	end
+    local function updateValue()
+        Label.Text = text .. ": " .. value
+        callback(value)
+    end
 
-	Minus.MouseButton1Click:Connect(function()
-		value = math.max(min, value - step)
-		updateValue()
-	end)
+    Minus.MouseButton1Click:Connect(function()
+        value = math.max(min, value - step)
+        updateValue()
+    end)
 
-	Plus.MouseButton1Click:Connect(function()
-		value = math.min(max, value + step)
-		updateValue()
-	end)
+    Plus.MouseButton1Click:Connect(function()
+        value = math.min(max, value + step)
+        updateValue()
+    end)
 
-	updateValue()
+    updateValue()
 end
 
 createValueFrame("Radius",50,10,200,5,100,function(v) radius=v end)
@@ -244,87 +242,81 @@ local Layout = Instance.new("UIListLayout", Scroll)
 Layout.Padding = UDim.new(0,5)
 
 local function applyTheme(name)
-	if rainbowConnection then
-		rainbowConnection:Disconnect()
-	end
-	
-	if name == "Default" then
-		Stroke.Color = Color3.fromRGB(0,170,255)
-	elseif name == "Red" then
-		Stroke.Color = Color3.fromRGB(255,0,0)
-	elseif name == "Purple" then
-		Stroke.Color = Color3.fromRGB(170,0,255)
-	elseif name == "Neon" then
-		Stroke.Color = Color3.fromRGB(0,255,150)
-	elseif name == "Rainbow" then
-		rainbowConnection = RunService.RenderStepped:Connect(function()
-			Stroke.Color = Color3.fromHSV((tick()%%5)/5,1,1)
-		end)
-	end
+    if rainbowConnection then
+        rainbowConnection:Disconnect()
+        rainbowConnection = nil
+    end
+    if name == "Default" then
+        Stroke.Color = Color3.fromRGB(0,170,255)
+    elseif name == "Red" then
+        Stroke.Color = Color3.fromRGB(255,0,0)
+    elseif name == "Purple" then
+        Stroke.Color = Color3.fromRGB(170,0,255)
+    elseif name == "Neon" then
+        Stroke.Color = Color3.fromRGB(0,255,150)
+    elseif name == "Rainbow" then
+        rainbowConnection = RunService.RenderStepped:Connect(function()
+            Stroke.Color = Color3.fromHSV((tick() % 5) / 5, 1, 1)
+        end)
+    end
 end
 
 local themes = {"Default","Red","Purple","Neon","Rainbow"}
-
 for _,theme in ipairs(themes) do
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,-10,0,30)
-	btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Text = theme
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 14
-	btn.Parent = Scroll
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
-
-	btn.MouseButton1Click:Connect(function()
-		applyTheme(theme)
-	end)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,-10,0,30)
+    btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Text = theme
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.Parent = Scroll
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+    btn.MouseButton1Click:Connect(function()
+        applyTheme(theme)
+    end)
 end
 
 ThemeButton.MouseButton1Click:Connect(function()
-	ThemePanel.Visible = not ThemePanel.Visible
+    ThemePanel.Visible = not ThemePanel.Visible
 end)
 
 -- COLLECT PARTS
 local function addPart(obj)
-	if obj:IsA("BasePart") and not obj.Anchored then
-		if LocalPlayer.Character and obj:IsDescendantOf(LocalPlayer.Character) then return end
-		table.insert(parts,obj)
-	end
+    if obj:IsA("BasePart") and not obj.Anchored then
+        if LocalPlayer.Character and obj:IsDescendantOf(LocalPlayer.Character) then
+            return
+        end
+        table.insert(parts, obj)
+    end
 end
 
 for _,v in pairs(workspace:GetDescendants()) do
-	addPart(v)
+    addPart(v)
 end
 
 workspace.DescendantAdded:Connect(addPart)
 
 -- ORBIT SYSTEM
 RunService.Heartbeat:Connect(function(dt)
-	if not ringEnabled then return end
-	
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	
-	orbitAngle += rotationSpeed * dt
-	
-	local center = hrp.Position
-	local count = #parts
-	if count == 0 then return end
-	
-	for i,part in ipairs(parts) do
-		if part and part.Parent and not part.Anchored then
-			local angle = orbitAngle + (i * (math.pi*2/count))
-			
-			local target = center + Vector3.new(
-				math.cos(angle)*radius,
-				5,
-				math.sin(angle)*radius
-			)
-			
-			part.Velocity = (target - part.Position) * 12
-		end
-	end
+    if not ringEnabled then return end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    orbitAngle = orbitAngle + (rotationSpeed * dt)
+    local center = hrp.Position
+    local count = #parts
+    if count == 0 then return end
+
+    for i, part in ipairs(parts) do
+        if part and part.Parent and not part.Anchored then
+            local angle = orbitAngle + (i * (math.pi * 2 / count))
+            local target = center + Vector3.new( math.cos(angle) * radius, 5, math.sin(angle) * radius )
+            part.Velocity = (target - part.Position) * 12
+        end
+    end
 end)
