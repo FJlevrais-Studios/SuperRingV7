@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -12,16 +13,18 @@ local ringEnabled = false
 local orbitAngle = 0
 local parts = {}
 local rainbowConnection
+local telekinesisEnabled = false
+local draggedPart = nil
 
 --// GUI SETUP
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SuperRingV8"
+ScreenGui.Name = "SuperRingV9"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 300, 0, 260)
-Main.Position = UDim2.new(0.5, -150, 0.5, -130)
+Main.Size = UDim2.new(0, 300, 0, 320)
+Main.Position = UDim2.new(0.5, -150, 0.5, -160)
 Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 Main.BorderSizePixel = 0
 Main.Parent = ScreenGui
@@ -31,26 +34,15 @@ local Stroke = Instance.new("UIStroke", Main)
 Stroke.Color = Color3.fromRGB(0,170,255)
 Stroke.Thickness = 2
 
--- TITLE
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,0,0,40)
-Title.BackgroundTransparency = 1
-Title.Text = "Super Ring V8"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 20
-Title.TextColor3 = Stroke.Color
-Title.Parent = Main
-
--- DRAGGING
-local dragging, dragInput, dragStart, startPos
-
+-- DRAGGING WHOLE GUI
+local dragging, dragStart, startPos, dragInput
 local function update(input)
 	local delta = input.Position - dragStart
 	Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
 		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
-Title.InputBegan:Connect(function(input)
+Main.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 		dragStart = input.Position
@@ -63,7 +55,7 @@ Title.InputBegan:Connect(function(input)
 	end
 end)
 
-Title.InputChanged:Connect(function(input)
+Main.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement then
 		dragInput = input
 	end
@@ -74,6 +66,16 @@ UIS.InputChanged:Connect(function(input)
 		update(input)
 	end
 end)
+
+-- TITLE
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,0,0,40)
+Title.BackgroundTransparency = 1
+Title.Text = "Super Ring V9"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.TextColor3 = Stroke.Color
+Title.Parent = Main
 
 -- MINIMIZE & CLOSE
 local Minimize = Instance.new("TextButton")
@@ -100,67 +102,72 @@ Instance.new("UICorner", Close).CornerRadius = UDim.new(1,0)
 
 local minimized = false
 local originalSize = Main.Size
+local function getMinimizable()
+	local list = {}
+	for _,v in pairs(Main:GetChildren()) do
+		if v ~= Title and v ~= Minimize and v ~= Close then
+			table.insert(list,v)
+		end
+	end
+	return list
+end
 
 Minimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
-	
 	if minimized then
-		-- Shrink main frame
 		Main:TweenSize(UDim2.new(0,300,0,45),"Out","Quad",0.25,true)
-		
-		-- Hide all children except Title, Minimize, Close
-		for _,v in pairs(Main:GetChildren()) do
-			if v ~= Title and v ~= Minimize and v ~= Close then
-				v.Visible = false
-			end
-		end
-		
+		for _,v in pairs(getMinimizable()) do v.Visible = false end
 		Minimize.Text = "+"
 	else
-		-- Restore main frame
 		Main:TweenSize(originalSize,"Out","Quad",0.25,true)
-		
-		-- Show all children
-		for _,v in pairs(Main:GetChildren()) do
-			v.Visible = true
-		end
-		
+		for _,v in pairs(getMinimizable()) do v.Visible = true end
 		Minimize.Text = "-"
 	end
 end)
 
 Close.MouseButton1Click:Connect(function()
 	ringEnabled = false
-	if rainbowConnection then
-		rainbowConnection:Disconnect()
-	end
+	telekinesisEnabled = false
+	if rainbowConnection then rainbowConnection:Disconnect() end
 	for _,part in ipairs(parts) do
-		if part and part.Parent then
-			part.Velocity = Vector3.zero
-		end
+		if part and part.Parent then part.Velocity = Vector3.zero end
 	end
 	ScreenGui:Destroy()
 end)
 
--- TOGGLE BUTTON
-local Toggle = Instance.new("TextButton")
-Toggle.Size = UDim2.new(1,-20,0,40)
-Toggle.Position = UDim2.new(0,10,0,50)
-Toggle.Text = "Ring: OFF"
-Toggle.Font = Enum.Font.GothamBold
-Toggle.TextSize = 16
-Toggle.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Toggle.TextColor3 = Color3.new(1,1,1)
-Toggle.Parent = Main
-Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0,10)
-
-Toggle.MouseButton1Click:Connect(function()
+-- TOGGLE BUTTONS
+local ToggleRing = Instance.new("TextButton")
+ToggleRing.Size = UDim2.new(1,-20,0,40)
+ToggleRing.Position = UDim2.new(0,10,0,50)
+ToggleRing.Text = "Ring: OFF"
+ToggleRing.Font = Enum.Font.GothamBold
+ToggleRing.TextSize = 16
+ToggleRing.BackgroundColor3 = Color3.fromRGB(40,40,40)
+ToggleRing.TextColor3 = Color3.new(1,1,1)
+ToggleRing.Parent = Main
+Instance.new("UICorner", ToggleRing).CornerRadius = UDim.new(0,10)
+ToggleRing.MouseButton1Click:Connect(function()
 	ringEnabled = not ringEnabled
-	Toggle.Text = ringEnabled and "Ring: ON" or "Ring: OFF"
-	Toggle.BackgroundColor3 = ringEnabled and Color3.fromRGB(50,200,50) or Color3.fromRGB(40,40,40)
+	ToggleRing.Text = ringEnabled and "Ring: ON" or "Ring: OFF"
+	ToggleRing.BackgroundColor3 = ringEnabled and Color3.fromRGB(50,200,50) or Color3.fromRGB(40,40,40)
 end)
 
--- VALUE FRAME CREATOR
+local ToggleTelekinesis = Instance.new("TextButton")
+ToggleTelekinesis.Size = UDim2.new(1,-20,0,35)
+ToggleTelekinesis.Position = UDim2.new(0,10,0,95)
+ToggleTelekinesis.Text = "Telekinesis: OFF"
+ToggleTelekinesis.Font = Enum.Font.GothamBold
+ToggleTelekinesis.TextSize = 14
+ToggleTelekinesis.BackgroundColor3 = Color3.fromRGB(40,40,40)
+ToggleTelekinesis.TextColor3 = Color3.new(1,1,1)
+ToggleTelekinesis.Parent = Main
+Instance.new("UICorner", ToggleTelekinesis).CornerRadius = UDim.new(0,10)
+ToggleTelekinesis.MouseButton1Click:Connect(function()
+	telekinesisEnabled = not telekinesisEnabled
+	ToggleTelekinesis.Text = telekinesisEnabled and "Telekinesis: ON" or "Telekinesis: OFF"
+end)
+
+-- VALUE FRAMES
 local function createValueFrame(text, default, min, max, step, yPos, callback)
 	local Frame = Instance.new("Frame")
 	Frame.Size = UDim2.new(1,-20,0,45)
@@ -213,13 +220,13 @@ local function createValueFrame(text, default, min, max, step, yPos, callback)
 	updateValue()
 end
 
-createValueFrame("Radius",50,10,200,5,100,function(v) radius=v end)
-createValueFrame("Turn Speed",2,1,15,1,155,function(v) rotationSpeed=v end)
+createValueFrame("Radius",50,10,200,5,140,function(v) radius=v end)
+createValueFrame("Turn Speed",2,1,15,1,185,function(v) rotationSpeed=v end)
 
--- THEMES BUTTON
+-- THEMES
 local ThemeButton = Instance.new("TextButton")
 ThemeButton.Size = UDim2.new(1,-20,0,35)
-ThemeButton.Position = UDim2.new(0,10,0,210)
+ThemeButton.Position = UDim2.new(0,10,0,230)
 ThemeButton.Text = "Themes"
 ThemeButton.Font = Enum.Font.GothamBold
 ThemeButton.TextSize = 14
@@ -228,7 +235,6 @@ ThemeButton.TextColor3 = Color3.new(1,1,1)
 ThemeButton.Parent = Main
 Instance.new("UICorner", ThemeButton).CornerRadius = UDim.new(0,10)
 
--- THEMES PANEL
 local ThemePanel = Instance.new("Frame")
 ThemePanel.Size = UDim2.new(0,180,0,260)
 ThemePanel.Position = UDim2.new(1,5,0,0)
@@ -248,10 +254,8 @@ local Layout = Instance.new("UIListLayout", Scroll)
 Layout.Padding = UDim.new(0,5)
 
 local function applyTheme(name)
-	if rainbowConnection then
-		rainbowConnection:Disconnect()
-	end
-	
+	if rainbowConnection then rainbowConnection:Disconnect() end
+	Main.BackgroundTransparency = 0
 	if name == "Default" then
 		Stroke.Color = Color3.fromRGB(0,170,255)
 	elseif name == "Red" then
@@ -264,10 +268,13 @@ local function applyTheme(name)
 		rainbowConnection = RunService.RenderStepped:Connect(function()
 			Stroke.Color = Color3.fromHSV((tick()%5)/5,1,1)
 		end)
+	elseif name == "Transparent" then
+		Stroke.Color = Color3.fromRGB(255,255,255)
+		Main.BackgroundTransparency = 0.6
 	end
 end
 
-local themes = {"Default","Red","Purple","Neon","Rainbow"}
+local themes = {"Default","Red","Purple","Neon","Rainbow","Transparent"}
 
 for _,theme in ipairs(themes) do
 	local btn = Instance.new("TextButton")
@@ -289,7 +296,7 @@ ThemeButton.MouseButton1Click:Connect(function()
 	ThemePanel.Visible = not ThemePanel.Visible
 end)
 
--- COLLECT PARTS
+-- PARTS COLLECTION
 local function addPart(obj)
 	if obj:IsA("BasePart") and not obj.Anchored then
 		if LocalPlayer.Character and obj:IsDescendantOf(LocalPlayer.Character) then return end
@@ -297,38 +304,60 @@ local function addPart(obj)
 	end
 end
 
-for _,v in pairs(workspace:GetDescendants()) do
+for _,v in pairs(Workspace:GetDescendants()) do
 	addPart(v)
 end
 
-workspace.DescendantAdded:Connect(addPart)
+Workspace.DescendantAdded:Connect(addPart)
 
--- ORBIT SYSTEM
+-- TELEKINESIS DRAG
+UIS.InputBegan:Connect(function(input)
+	if not telekinesisEnabled then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		local mousePos = UIS:GetMouseLocation()
+		for _,p in ipairs(parts) do
+			if (p.Position - Vector3.new(mousePos.X, mousePos.Y, 0)).Magnitude < 15 then
+				draggedPart = p
+				break
+			end
+		end
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggedPart = nil
+	end
+end)
+
+-- ORBIT SYSTEM + TELEKINESIS
 RunService.Heartbeat:Connect(function(dt)
-	if not ringEnabled then return end
-	
 	local char = LocalPlayer.Character
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	
-	orbitAngle += rotationSpeed * dt
-	
-	local center = hrp.Position
-	local count = #parts
-	if count == 0 then return end
-	
-	for i,part in ipairs(parts) do
-		if part and part.Parent and not part.Anchored then
-			local angle = orbitAngle + (i * (math.pi*2/count))
-			
-			local target = center + Vector3.new(
-				math.cos(angle)*radius,
-				5,
-				math.sin(angle)*radius
-			)
-			
-			part.Velocity = (target - part.Position) * 12
+
+	-- Ring orbit
+	if ringEnabled then
+		orbitAngle += rotationSpeed * dt
+		local center = hrp.Position
+		local count = #parts
+		if count > 0 then
+			for i,part in ipairs(parts) do
+				if part and part.Parent and not part.Anchored then
+					local angle = orbitAngle + (i * (math.pi*2/count))
+					local target = center + Vector3.new(math.cos(angle)*radius,5,math.sin(angle)*radius)
+					part.Velocity = (target - part.Position) * 12
+				end
+			end
 		end
+	end
+
+	-- Telekinesis dragging
+	if telekinesisEnabled and draggedPart and draggedPart.Parent then
+		local mousePos = UIS:GetMouseLocation()
+		local ray = Workspace.CurrentCamera:ScreenPointToRay(mousePos.X, mousePos.Y)
+		local targetPos = ray.Origin + ray.Direction * 50
+		draggedPart.Velocity = (targetPos - draggedPart.Position) * 12
 	end
 end)
